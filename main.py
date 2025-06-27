@@ -85,7 +85,11 @@ async def fetch_messages(recipient_id: str):
         return JSONResponse(content={"detail": "Not Found"}, status_code=404)
 
     delete_messages_for(recipient_id)
-    return matched
+    return {
+    "recipient_id_received": recipient_id,
+    "messages": matched
+}
+
 
 
 @app.get("/debug_all")
