@@ -25,12 +25,21 @@ class CoreMsg(BaseModel):
     timestamp: str
     msg_id: str = ""
 
-def save_message(msg: dict):
-    with open(DB_FILE, "r+") as f:
-        data = json.load(f)
-        data.append(msg)
-        f.seek(0)
+def save_message(msg):
+    try:
+        with open(DB_FILE, "r") as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                data = []
+    except FileNotFoundError:
+        data = []
+
+    data.append(msg)
+
+    with open(DB_FILE, "w") as f:
         json.dump(data, f, indent=2)
+
 
 def load_messages():
     with open(DB_FILE, "r") as f:
