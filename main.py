@@ -63,7 +63,8 @@ async def send_message(msg: CoreMsg):
     return {"status": "ok", "saved_at": datetime.utcnow().isoformat()}
 from fastapi.responses import JSONResponse
 from urllib.parse import unquote_plus
-@app.get("/fetch/{recipient_id}")
+
+@app.get("/fetch")
 async def fetch_messages(recipient_id: str):
     from urllib.parse import unquote_plus
     recipient_id = unquote_plus(recipient_id).strip()
@@ -71,25 +72,17 @@ async def fetch_messages(recipient_id: str):
     print(f"[🔍] Fetching for ID: {recipient_id}")
 
     messages = load_messages()
-    matched = []
-
-    for m in messages:
-        msg_to = m.get("to", "").strip()
-        print(f"    ↪️  Comparing to: {msg_to}")
-        if msg_to == recipient_id:
-            print("    ✅ MATCH FOUND")
-            matched.append(m)
+    matched = [m for m in messages if m.get("to", "").strip() == recipient_id]
 
     if not matched:
         print("[❌] No matching messages.")
-        return JSONResponse(content={"detail": "Not Found"}, status_code=404)
+        return JSONResponse(content={"detail": "Not Found", "recipient_id_received": recipient_id}, status_code=404)
 
     delete_messages_for(recipient_id)
     return {
-    "recipient_id_received": recipient_id,
-    "messages": matched
-}
-
+        "recipient_id_received": recipient_id,
+        "messages": matched
+    }
 
 
 @app.get("/debug_all")
