@@ -87,3 +87,21 @@ def debug_all():
             except json.JSONDecodeError:
                 return JSONResponse(content={"error": "Invalid JSON"}, status_code=500)
     return JSONResponse(content={"error": "File not found"}, status_code=404)
+@app.get("/debug_users")
+def debug_all_users():
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r") as f:
+            try:
+                data = json.load(f)
+
+                users = set()
+                for msg in data:
+                    users.add(msg.get("to"))
+                    users.add(msg.get("from_") or msg.get("from"))  # support both
+
+                return JSONResponse(content={"users": list(users)})
+            except json.JSONDecodeError:
+                return JSONResponse(content={"error": "Invalid JSON"}, status_code=500)
+
+    return JSONResponse(content={"error": "File not found"}, status_code=404)
+
