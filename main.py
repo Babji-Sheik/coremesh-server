@@ -67,6 +67,7 @@ from urllib.parse import unquote_plus
 @app.get("/fetch/{recipient_id}")
 async def fetch_messages(recipient_id: str):
     recipient_id = unquote_plus(recipient_id)  # ✅ Decode URL-safe string
+    recipient_id = "7D3SQB3uG/UP8gGi2VJamajzRlNzu08HzIngkwEfH+4="
 
     messages = load_messages()
     user_msgs = [m for m in messages if m["to"] == recipient_id]
