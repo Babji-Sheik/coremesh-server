@@ -1,17 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 26 22:30:46 2025
-@author: sheik
-"""
-
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
-from fastapi.responses import JSONResponse
 from urllib.parse import unquote
 import json
 import os
 import sqlite3
+from typing import List
 
 app = FastAPI()
 
@@ -61,6 +56,8 @@ async def send_message(msg: CoreMsg):
     msg_dict = msg.dict()
     msg_dict["from"] = msg_dict.pop("from_")
     save_message(msg_dict)
+    # Broadcast to active WebSocket connections
+    await manager.send_personal_message(msg_dict, msg_dict["to"])
     return {"status": "ok", "saved_at": datetime.utcnow().isoformat()}
 
 @app.get("/fetch")
@@ -158,6 +155,39 @@ async def get_user(username: str):
     if pubkey:
         return {"username": username, "public_key": pubkey}
     return JSONResponse(content={"error": "User not found"}, status_code=404)
+
+# ─── WEBSOCKET CONNECTION HANDLER ───────────────────────────
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[str, List[WebSocket]] = {}
+
+    async def connect(self, user_id: str, websocket: WebSocket):
+        await websocket.accept()
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
+
+    def disconnect(self, user_id: str, websocket: WebSocket):
+        if user_id in self.active_connections:
+            self.active_connections[user_id].remove(websocket)
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
+
+    async def send_personal_message(self, message: dict, user_id: str):
+        if user_id in self.active_connections:
+            for conn in self.active_connections[user_id]:
+                await conn.send_json(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/{recipient_id}")
+async def websocket_endpoint(websocket: WebSocket, recipient_id: str):
+    await manager.connect(recipient_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # ping/pong or keepalive
+    except WebSocketDisconnect:
+        manager.disconnect(recipient_id, websocket)
 
 # Initialize SQLite user DB on app start
 init_user_db()
