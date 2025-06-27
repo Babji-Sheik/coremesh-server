@@ -68,3 +68,15 @@ async def fetch_messages(recipient_id: str):
     user_msgs = [m for m in messages if m["to"] == recipient_id]
     delete_messages_for(recipient_id)
     return user_msgs
+from fastapi.responses import JSONResponse
+
+@app.get("/debug_all")
+def debug_all():
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r") as f:
+            try:
+                data = json.load(f)
+                return JSONResponse(content=data)
+            except json.JSONDecodeError:
+                return JSONResponse(content={"error": "Invalid JSON"}, status_code=500)
+    return JSONResponse(content={"error": "File not found"}, status_code=404)
