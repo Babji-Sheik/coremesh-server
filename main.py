@@ -56,7 +56,6 @@ async def send_message(msg: CoreMsg):
     msg_dict = msg.dict()
     msg_dict["from"] = msg_dict.pop("from_")
     save_message(msg_dict)
-    # Broadcast to active WebSocket connections
     await manager.send_personal_message(msg_dict, msg_dict["to"])
     return {"status": "ok", "saved_at": datetime.utcnow().isoformat()}
 
@@ -156,6 +155,11 @@ async def get_user(username: str):
         return {"username": username, "public_key": pubkey}
     return JSONResponse(content={"error": "User not found"}, status_code=404)
 
+@app.get("/user_exists/{username}")
+async def user_exists(username: str):
+    pubkey = get_public_key(username.strip())
+    return {"exists": bool(pubkey)}
+
 # ─── WEBSOCKET CONNECTION HANDLER ───────────────────────────
 class ConnectionManager:
     def __init__(self):
@@ -185,9 +189,9 @@ async def websocket_endpoint(websocket: WebSocket, recipient_id: str):
     await manager.connect(recipient_id, websocket)
     try:
         while True:
-            await websocket.receive_text()  # ping/pong or keepalive
+            await websocket.receive_text()  # keep alive
     except WebSocketDisconnect:
         manager.disconnect(recipient_id, websocket)
 
-# Initialize SQLite user DB on app start
+# ─── INIT ───────────────────────────────────────────────────
 init_user_db()
