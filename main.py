@@ -184,7 +184,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.websocket("/ws/{recipient_id}")
+@app.websocket("/{recipient_id}")
 async def websocket_endpoint(websocket: WebSocket, recipient_id: str):
     await manager.connect(recipient_id, websocket)
     try:
