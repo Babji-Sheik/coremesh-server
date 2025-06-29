@@ -15,13 +15,15 @@ DB_FILE = "messages.json"
 if not os.path.exists(DB_FILE):
     with open(DB_FILE, "w") as f:
         json.dump([], f)
-
+        
 class CoreMsg(BaseModel):
-    to: str        # recipient username
-    from_: str     # sender username
+    to: str
+    from_: str
+    sender_username: str
     payload: str
     timestamp: str
     msg_id: str = ""
+
 
 def save_message(msg):
     try:
